@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "allowJs": false,
+    "checkJs": false,
+    "allowSyntheticDefaultImports": true,
+    "declaration": true, // emits ".d.ts" files
+    "declarationMap": true, // emits ".map" files
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react", // ts-jest relies on this
+    "lib": ["es7"],
+    // "module": "commonjs", // we'll still transpile as CJS to enable use of ts-node locally. We should define a "source" field to allow webpack/rollup to still treeshake
+    "module": "ESNext", // must be ES Module output so rollup etc can take advantage
+    "moduleResolution": "node",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "plugins": [],
+    "removeComments": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "target": "es2017", // to allow use of Object.values
+    // --- base
+    "incremental": true,
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*", "./typings/index.d.ts"],
+  "exclude": [
+    "**/__tests__/**/*",
+    "**/__mocks__/**/*",
+    "**/*.pre-*.*",
+    "**/*.post-*.*",
+    "**/*.deleteable.*",
+    "**/*.ignore.*",
+    "**/*.skip.*",
+    "**/dist",
+  ]
+}
