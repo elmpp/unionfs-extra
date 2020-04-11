@@ -1,13 +1,15 @@
+// @ts-nocheck
 import walkSync, {Options as WalkOptions} from 'walk-sync'
 import {
-  fsSyncMethodsReadonly,
-  fsAsyncMethodsReadonly,
-  fsPromiseMethodsReadonly,
-  fsAsyncMethodsWriteonly,
-  fsSyncMethodsWriteonly,
-  fsPromiseMethodsWriteonly,
+  fsSyncMethodsReadable,
+  fsAsyncMethodsReadable,
+  fsPromiseMethodsReadable,
+  fsAsyncMethodsWritable,
+  fsSyncMethodsWritable,
+  fsPromiseMethodsWritable,
+  IFS,
 } from 'unionfs'
-import {IFs} from 'memfs'
+// import {IFs} from 'memfs'
 import debugModule from 'debug'
 import path from 'path'
 // import fs from 'fs'
@@ -18,7 +20,7 @@ const debugInfo = debugModule('unionfs').bind(console.log)
 type Options = Pick<WalkOptions, 'globs' | 'ignore'>
 
 // export type FSLike = typeof fs
-export type FSLike = IFs
+export type FSLike = IFS
 
 /**
  mergeDown effectively compacts the contents of a volume down onto another
@@ -85,9 +87,9 @@ export const mkdirpProxy = (vol: FSLike): FSLike => {
 const getMethodType = (method: string): ['read' | 'write' | 'all', 'sync' | 'async' | 'promise'] => {
   if (method.startsWith('promise')) {
     return [
-      (fsPromiseMethodsReadonly as readonly string[]).includes(method.slice(8))
+      (fsPromiseMethodsReadable as readonly string[]).includes(method.slice(8))
         ? 'read'
-        : (fsPromiseMethodsWriteonly as readonly string[]).includes(method.slice(8))
+        : (fsPromiseMethodsWritable as readonly string[]).includes(method.slice(8))
         ? 'write'
         : 'all',
       'promise',
@@ -95,18 +97,18 @@ const getMethodType = (method: string): ['read' | 'write' | 'all', 'sync' | 'asy
   }
   if (method.endsWith('Sync') || method.endsWith('Stream')) {
     return [
-      (fsSyncMethodsReadonly as readonly string[]).includes(method.slice(8))
+      (fsSyncMethodsReadable as readonly string[]).includes(method.slice(8))
         ? 'read'
-        : (fsSyncMethodsWriteonly as readonly string[]).includes(method.slice(8))
+        : (fsSyncMethodsWritable as readonly string[]).includes(method.slice(8))
         ? 'write'
         : 'all',
       'sync',
     ]
   }
   return [
-    (fsAsyncMethodsReadonly as readonly string[]).includes(method.slice(8))
+    (fsAsyncMethodsReadable as readonly string[]).includes(method.slice(8))
       ? 'read'
-      : (fsAsyncMethodsReadonly as readonly string[]).includes(method.slice(8))
+      : (fsAsyncMethodsReadable as readonly string[]).includes(method.slice(8))
       ? 'write'
       : 'all',
     'async',
@@ -114,12 +116,12 @@ const getMethodType = (method: string): ['read' | 'write' | 'all', 'sync' | 'asy
 }
 
 // const isReadMethodAsync = (method: string): boolean => {
-//   return ([...fsSyncMethodsReadonly, ...fsAsyncMethodsReadonly, ...fsPromiseMethodsReadonly] as string[]).includes(
+//   return ([...fsSyncMethodsReadable, ...fsAsyncMethodsReadable, ...fsPromiseMethodsReadable] as string[]).includes(
 //     method
 //   )
 // }
 // const isWriteMethod = (method: string): boolean => {
-//   return ([...fsSyncMethodsWriteonly, ...fsAsyncMethodsWriteonly, ...fsPromiseMethodsWriteonly] as string[]).includes(
+//   return ([...fsSyncMethodsWritable, ...fsAsyncMethodsWritable, ...fsPromiseMethodsWritable] as string[]).includes(
 //     method
 //   )
 // }

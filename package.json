@@ -1,7 +1,7 @@
 {
   "name": "unionfs-extra",
   "version": "0.0.1",
-  "description": "Extract and resolve declared dependencies for a package. Filter based on their package.json",
+  "description": "Utils for unionfs fs stacks",
   "keywords": [
     "require",
     "resolve",
@@ -33,7 +33,6 @@
     "lint": "tsc --noEmit && eslint . --ext .ts --ext .tsx",
     "format": "eslint . --fix --ext .ts --ext .tsx",
     "prepublishOnly": "yarn transpile",
-    "pretest": "del node_modules/@aha && del node_modules/linton-travel-tavern && del node_modules/norwich-pedestrian-zone && make-dir node_modules && cp -R ./fixtures/ ./node_modules/",
     "test": "jest --passWithNoTests",
     "transpile": "tsc --module commonjs",
     "transpile-watch": "yarn transpile --watch",
@@ -49,8 +48,6 @@
     "node": ">=4.0.0"
   },
   "devDependencies": {
-    "@aha/linton-travel-tavern": "file:./fixtures/@aha/linton-travel-tavern",
-    "@aha/norwich-pedestrian-zone": "file:./fixtures/@aha/norwich-pedestrian-zone",
     "@commitlint/cli": "8.2.0 && 8.2.0",
     "@commitlint/config-conventional": "8.2.0 && 8.2.0",
     "@types/debug": "^4.1.5",
@@ -77,6 +74,7 @@
   },
   "dependencies": {
     "debug": "^4.1.1",
+    "unionfs": "^4.4.0",
     "walk-sync": "2.0.2"
   },
   "peerDependencies": {
