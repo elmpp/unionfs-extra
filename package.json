@@ -53,6 +53,7 @@
     "@aha/norwich-pedestrian-zone": "file:./fixtures/@aha/norwich-pedestrian-zone",
     "@commitlint/cli": "8.2.0 && 8.2.0",
     "@commitlint/config-conventional": "8.2.0 && 8.2.0",
+    "@types/debug": "^4.1.5",
     "@typescript-eslint/eslint-plugin": "2.13.0 && 2.13.0",
     "@typescript-eslint/parser": "2.13.0 && 2.13.0",
     "all-contributors-cli": "6.11.2 && 6.11.2",
@@ -71,10 +72,15 @@
     "jest": "24.9.0 && 24.9.0",
     "prettier": "1.19.1 && 1.19.1",
     "ts-jest": "24.2.0 && 24.2.0",
-    "typescript": "3.8.3 && 3.8.3"
+    "typescript": "3.8.3 && 3.8.3",
+    "unionfs": "^4.4.0"
   },
   "dependencies": {
+    "debug": "^4.1.1",
     "walk-sync": "2.0.2"
+  },
+  "peerDependencies": {
+    "unionfs": "^4.4.0"
   },
   "files": [
     "dist"

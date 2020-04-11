@@ -1,56 +1,125 @@
-import fs from 'fs'
-import util from 'util'
-import pkgJsonResolve from 'package-json-resolved'
-import pkgPathParse from 'package-path-parse'
+import walkSync, {Options as WalkOptions} from 'walk-sync'
+import {
+  fsSyncMethodsReadonly,
+  fsAsyncMethodsReadonly,
+  fsPromiseMethodsReadonly,
+  fsAsyncMethodsWriteonly,
+  fsSyncMethodsWriteonly,
+  fsPromiseMethodsWriteonly,
+} from 'unionfs'
+import {IFs} from 'memfs'
+import debugModule from 'debug'
+import path from 'path'
+// import fs from 'fs'
 
-export type NameFilter = (parts: NonNullable<ReturnType<typeof pkgPathParse>>) => boolean
-export type PkgFilter = (pkg: Record<string, any>) => boolean
-interface Options {
-  nameFilter?: NameFilter
-  pkgFilter?: PkgFilter
-  type?: 'dependencies' | 'devDependencies' | 'optionalDependencies' | 'peerDependencies'
-}
+const debugError = debugModule('unionfs')
+const debugInfo = debugModule('unionfs').bind(console.log)
 
-const asyncReadFile = util.promisify(fs.readFile)
+type Options = Pick<WalkOptions, 'globs' | 'ignore'>
+
+// export type FSLike = typeof fs
+export type FSLike = IFs
 
 /**
- Filter a package.json dependencies by name and resolved package.json content
+ mergeDown effectively compacts the contents of a volume down onto another
 
  @remarks
 
- Accepts 2 filter iteratees
-  - First to be ran against the package names within dependencies found in package.json
-  - Second to accept the package.json contents of each resolved package
+ @example
+```ts
+ import {mergeDown} from 'unionfs-extra' // alternatively 'unionfs-extra/dist/mergeDown'
+ import {Volume} from 'memfs'
 
- {@link https://tinyurl.com/ve2bc9f | inspired by sindresorhus/resolve-from }
+ const volUpper = Volume.fromJSON({'/a': 'its-an-extender', '/baseDir/b': 'cock-piss-partridge'}, {'/a': 'toblerones'})
+ const a = mergeDown(volUpper, volLower)
+ console.log(a.toJSON()) // {"/a": "its-an-extender", "/baseDir/b": 'cock-piss-partridge"}
+```
+ */
+export const mergeDown = (volUpper: FSLike, volLower: FSLike, options: Options): FSLike => {}
+
+// !@todo - message this guy about copying - https://github.com/tophat/semantic-release-firefox-add-on/pull/91#discussion_r393291566
+/**
+ mkdirpProxy will ensure that all directories for a given path exist when a write operation is attempted
+ on a volume
+
+ @remarks
 
  @example
 ```ts
- import depsFilter from 'unionfs-extra'
- const a = depsFilter('resolvedPath', {
-   nameFilter: (\{name, scope, suffix\}) => name.match(/^mnt-.+/),
-   pkgFilter: pkg => pkgJson.keywords?.includes('hummus')
- })
+ import {mkdirpProxy} from 'unionfs-extra'
+ import {Union} from 'unionfs'
+
+ const union = new Union()
+ const vol1 = Volume.fromJSON({})
+ union.use(mkdirpProxy(vol1))
+ union.writeFileSync('/some-dir1/some-dir2/somefile.txt', 'some content', 'utf8') // will create `/some-dir1/some-dir2/` before `somefile.txt`
 ```
  */
-async function depsFilter(aPath: string, options: Options & {silent: false}): Promise<string[]>
-async function depsFilter(aPath: string, options: Options & {silent: true}): Promise<string[] | undefined>
-async function depsFilter(aPath: string, options: Options & {silent?: undefined}): Promise<string[]>
-async function depsFilter(aPath: string, options: Options & {silent?: boolean}): Promise<string[] | undefined> {
-  const {silent, nameFilter, pkgFilter, type = 'dependencies'} = options
-  try {
-    const pkg = JSON.parse(await asyncReadFile(aPath, {encoding: 'utf-8'}))
-    const deps = Object.entries(pkg[type]).reduce<string[]>((acc, [name, _pkgVersion]) => {
-      if (!nameFilter || nameFilter(pkgPathParse(name))) acc.push(name)
-      return acc
-    }, [])
-    if (!pkgFilter) return deps
-    const pkgJsons = await Promise.all(deps.map(dep => pkgJsonResolve(dep, {cwd: __dirname})))
-    return pkgJsons.filter(pkgJson => pkgFilter(pkgJson)).map(({name}) => name)
-  } catch (error) {
-    if (error.code === 'ENOENT' && silent) return
-    throw error
-  }
+export const mkdirpProxy = (vol: FSLike): FSLike => {
+  return new Proxy(vol, {
+    get(target: FSLike, method: string) {
+      // @ts-ignore
+      if (target[method] && typeof target[method] === 'function' && isWriteMethod(method)) {
+        return (...args: string[]) => {
+          const targetPath = args[0] // assuming always first?
+          const realpath = target.realpathSync(targetPath, {encoding: 'utf8'}) as string
+          if (!realpath.includes('/')) {
+            debugError(`Incorrect path or same directory: '${path}'. Method: '${method}'`)
+            // @ts-ignore
+            return target[method]
+          }
+          const targetDir = path.dirname(realpath)
+          target.mkdirSync(targetDir, {recursive: true})
+          debugInfo(`Created directories up to '${targetDir}'`)
+        }
+      }
+      // @ts-ignore
+      return target[method]
+    },
+  }) as FSLike
 }
 
-export default depsFilter
+/**
+ e.g. readFileSync, promise.open, writeFile
+ */
+const getMethodType = (method: string): ['read' | 'write' | 'all', 'sync' | 'async' | 'promise'] => {
+  if (method.startsWith('promise')) {
+    return [
+      (fsPromiseMethodsReadonly as readonly string[]).includes(method.slice(8))
+        ? 'read'
+        : (fsPromiseMethodsWriteonly as readonly string[]).includes(method.slice(8))
+        ? 'write'
+        : 'all',
+      'promise',
+    ]
+  }
+  if (method.endsWith('Sync') || method.endsWith('Stream')) {
+    return [
+      (fsSyncMethodsReadonly as readonly string[]).includes(method.slice(8))
+        ? 'read'
+        : (fsSyncMethodsWriteonly as readonly string[]).includes(method.slice(8))
+        ? 'write'
+        : 'all',
+      'sync',
+    ]
+  }
+  return [
+    (fsAsyncMethodsReadonly as readonly string[]).includes(method.slice(8))
+      ? 'read'
+      : (fsAsyncMethodsReadonly as readonly string[]).includes(method.slice(8))
+      ? 'write'
+      : 'all',
+    'async',
+  ]
+}
+
+// const isReadMethodAsync = (method: string): boolean => {
+//   return ([...fsSyncMethodsReadonly, ...fsAsyncMethodsReadonly, ...fsPromiseMethodsReadonly] as string[]).includes(
+//     method
+//   )
+// }
+// const isWriteMethod = (method: string): boolean => {
+//   return ([...fsSyncMethodsWriteonly, ...fsAsyncMethodsWriteonly, ...fsPromiseMethodsWriteonly] as string[]).includes(
+//     method
+//   )
+// }

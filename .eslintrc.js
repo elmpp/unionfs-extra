@@ -182,6 +182,7 @@ module.exports = {
         'tsdoc/syntax': 1,
         'no-undef': 0, // not required alongside ts - https://tinyurl.com/voo2zzp
         // overriding @typescript-eslint
+        '@typescript-eslint/ban-ts-ignore': 0,
         '@typescript-eslint/camelcase': 0,
         '@typescript-eslint/explicit-member-accessibility': 0,
         '@typescript-eslint/indent': 0,
